@@ -87,7 +87,9 @@ instance (Monoid b, Monad m) => Monoid (FoldM m a b) where
     mappend = liftA2 mappend
     {-# INLINABLE mappend #-}
 
-
+-- | We cannot write extract but 'duplicate' is still possible
+duplucateM :: Monad m => FoldM m a b -> FoldM m a (FoldM m a b)
+duplucateM (FoldM f x done) = FoldM f x (\y -> return $ FoldM f y done)
 
 
 ----------------------------------------------------------------
