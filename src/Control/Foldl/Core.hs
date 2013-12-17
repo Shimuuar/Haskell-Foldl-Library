@@ -5,6 +5,8 @@ module Control.Foldl.Core where
 
 import Control.Category
 import Control.Applicative
+import Control.Comonad
+
 import Data.Monoid
 import Prelude hiding (id,(.))
 
@@ -41,6 +43,11 @@ instance Monoid b => Monoid (Fold a b) where
     {-# INLINABLE mempty #-}
     mappend = liftA2 mappend
     {-# INLINABLE mappend #-}
+
+instance Comonad (Fold a) where
+  extract (Fold _ x done) = done x
+  duplicate (Fold f x done) = Fold f x (\y -> Fold f y done)
+
 
 
 ----------------------------------------------------------------
