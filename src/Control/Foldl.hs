@@ -98,8 +98,7 @@ fold (Fold step begin done) as = done (foldr step' id as begin)
 -- | Like 'fold', but monadic
 foldM :: (Monad m) => FoldM m a b -> [a] -> m b
 foldM (FoldM step begin done) as0 = do
-    x <- begin
-    loop as0 $! x
+    loop as0 begin
   where
     loop  []    x = done x
     loop (a:as) x = do

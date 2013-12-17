@@ -55,7 +55,7 @@ instance Comonad (Fold a) where
 ----------------------------------------------------------------
 
 -- | Like 'Fold', but monadic
-data FoldM m a b = forall x . FoldM (x -> a -> m x) (m x) (x -> m b)
+data FoldM m a b = forall x . FoldM (x -> a -> m x) x (x -> m b)
 
 instance (Monad m) => Functor (FoldM m a) where
     fmap f (FoldM step start done) = FoldM step start done'
@@ -66,17 +66,14 @@ instance (Monad m) => Functor (FoldM m a) where
     {-# INLINABLE fmap #-}
 
 instance (Monad m) => Applicative (FoldM m a) where
-    pure b = FoldM (\() _ -> return ()) (return ()) (\() -> return b)
+    pure b = FoldM (\() _ -> return ()) () (\() -> return b)
     {-# INLINABLE pure #-}
-    (FoldM stepL beginL doneL) <*> (FoldM stepR beginR doneR) =
+    FoldM stepL beginL doneL <*> FoldM stepR beginR doneR =
         let step (Pair xL xR) a = do
                 xL' <- stepL xL a
                 xR' <- stepR xR a
                 return $! Pair xL' xR'
-            begin = do
-                xL <- beginL
-                xR <- beginR
-                return $! Pair xL xR
+            begin = Pair beginL beginR
             done (Pair xL xR) = do
                 f <- doneL xL
                 x <- doneR xR
