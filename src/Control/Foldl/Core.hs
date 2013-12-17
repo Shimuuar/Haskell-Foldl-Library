@@ -93,6 +93,15 @@ duplucateM (FoldM f x done) = FoldM f x (\y -> return $ FoldM f y done)
 
 
 ----------------------------------------------------------------
+-- Data samples
+----------------------------------------------------------------
+
+-- | Data sample which encapsulate data and folding method
+newtype Sample a = Sample (forall r. Fold a r -> r)
+
+
+
+----------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------
 
