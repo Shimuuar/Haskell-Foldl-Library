@@ -1,4 +1,4 @@
-
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 module Control.Foldl.Core where
@@ -99,6 +99,24 @@ duplucateM (FoldM f x done) = FoldM f x (\y -> return $ FoldM f y done)
 -- | Data sample which encapsulate data and folding method
 newtype Sample a = Sample (forall r. Fold a r -> r)
 
+instance Monoid (Sample a) where
+  mempty  = Sample extract
+  -- Note that we need to reverse arrow here to get right ordering of
+  -- elements.
+  mappend (Sample a) (Sample b) = Sample $ a =<= b
+
+
+-- | Get result from fold
+runFold :: Sample a -> Fold a b -> b
+runFold (Sample run) fold = run fold
+
+class IsSample a where
+  type Elem a
+  toSample :: a -> Sample (Elem a)
+
+instance IsSample [a] where
+  type Elem [a] = a
+  toSample as = Sample $ \(Fold f x done) -> done $ foldl f x as
 
 
 ----------------------------------------------------------------
@@ -106,3 +124,6 @@ newtype Sample a = Sample (forall r. Fold a r -> r)
 ----------------------------------------------------------------
 
 data Pair a b = Pair !a !b
+
+makeList :: Fold a [a]
+makeList = Fold (flip (:)) [] reverse
