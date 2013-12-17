@@ -68,7 +68,6 @@ module Control.Foldl
     , genericIndex
     ) where
 
-import Control.Applicative (Applicative(pure, (<*>)),liftA2)
 import Data.Monoid (Monoid(mempty, mappend))
 import Prelude hiding
     ( head
@@ -86,14 +85,8 @@ import Prelude hiding
     , elem
     , notElem
     )
+import Control.Foldl.Core
 
-{-| Efficient representation of a left fold that preserves the fold's step
-    function, initial accumulator, and extraction function
-
-    This allows the 'Applicative' instance to assemble derived folds that
-    traverse the container only once
--}
-data Fold a b = forall x . Fold (x -> a -> x) x (x -> b)
 
 -- | Apply a strict left 'Fold' to a list and extract the final result
 fold :: Fold a b -> [a] -> b
@@ -101,66 +94,6 @@ fold (Fold step begin done) as = done (foldr step' id as begin)
   where
     step' x k z = k $! step z x
 {-# INLINE fold #-}
-
-data Pair a b = Pair !a !b
-
-instance Functor (Fold a) where
-    fmap f (Fold step begin done) = Fold step begin (f . done)
-    {-# INLINABLE fmap #-}
-
-instance Applicative (Fold a) where
-    pure b    = Fold (\() _ -> ()) () (\() -> b)
-    {-# INLINABLE pure #-}
-    (Fold stepL beginL doneL) <*> (Fold stepR beginR doneR) =
-        let step (Pair xL xR) a = Pair (stepL xL a) (stepR xR a)
-            begin = Pair beginL beginR
-            done (Pair xL xR) = (doneL xL) (doneR xR)
-        in  Fold step begin done
-    {-# INLINABLE (<*>) #-}
-
-instance Monoid b => Monoid (Fold a b) where
-    mempty = pure mempty
-    {-# INLINABLE mempty #-}
-    mappend = liftA2 mappend
-    {-# INLINABLE mappend #-}
-
-
--- | Like 'Fold', but monadic
-data FoldM m a b = forall x . FoldM (x -> a -> m x) (m x) (x -> m b)
-
-instance (Monad m) => Functor (FoldM m a) where
-    fmap f (FoldM step start done) = FoldM step start done'
-      where
-        done' x = do
-            b <- done x
-            return $! f b
-    {-# INLINABLE fmap #-}
-
-instance (Monad m) => Applicative (FoldM m a) where
-    pure b = FoldM (\() _ -> return ()) (return ()) (\() -> return b)
-    {-# INLINABLE pure #-}
-    (FoldM stepL beginL doneL) <*> (FoldM stepR beginR doneR) =
-        let step (Pair xL xR) a = do
-                xL' <- stepL xL a
-                xR' <- stepR xR a
-                return $! Pair xL' xR'
-            begin = do
-                xL <- beginL
-                xR <- beginR
-                return $! Pair xL xR
-            done (Pair xL xR) = do
-                f <- doneL xL
-                x <- doneR xR
-                return $! f x
-        in  FoldM step begin done
-    {-# INLINABLE (<*>) #-}
-
-instance (Monoid b, Monad m) => Monoid (FoldM m a b) where
-    mempty = pure mempty
-    {-# INLINABLE mempty #-}
-    mappend = liftA2 mappend
-    {-# INLINABLE mappend #-}
-
 
 -- | Like 'fold', but monadic
 foldM :: (Monad m) => FoldM m a b -> [a] -> m b
