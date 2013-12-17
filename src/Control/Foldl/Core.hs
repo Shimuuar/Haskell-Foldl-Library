@@ -57,6 +57,9 @@ instance Comonad (Fold a) where
 -- | Like 'Fold', but monadic
 data FoldM m a b = forall x . FoldM (x -> a -> m x) x (x -> m b)
 
+toFoldM :: Monad m => Fold a b -> FoldM m a b
+toFoldM (Fold f x0 done) = FoldM (\x a -> return $ f x a) x0 (return . done)
+
 instance (Monad m) => Functor (FoldM m a) where
     fmap f (FoldM step start done) = FoldM step start done'
       where
